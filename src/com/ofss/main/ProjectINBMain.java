@@ -9,6 +9,7 @@ import java.util.Scanner;
 import com.ofss.main.domain.AccountDetail;
 import com.ofss.main.domain.CustomerDetail;
 import com.ofss.main.domain.LoginDetail;
+import com.ofss.main.domain.ChequeDetail;
 
 import com.ofss.main.service.CustomerDetailService;
 import com.ofss.main.service.CustomerDetailServiceImpl;
@@ -18,6 +19,8 @@ import com.ofss.main.service.AdminDetailService;
 import com.ofss.main.service.AdminDetailServiceImpl;
 import com.ofss.main.service.AccountDetailService;
 import com.ofss.main.service.AccountDetailServiceImpl;
+import com.ofss.main.service.ChequeDetailService;
+import com.ofss.main.service.ChequeDetailServiceImpl;
 
 
 public class ProjectINBMain {
@@ -35,6 +38,8 @@ public class ProjectINBMain {
         LoginDetailService loginService = new LoginDetailServiceImpl();
         AdminDetailService adminService = new AdminDetailServiceImpl();
         AccountDetailService accountService = new AccountDetailServiceImpl();
+        ChequeDetailService chequeService = new ChequeDetailServiceImpl();
+
         Scanner scanner = new Scanner(System.in);
 
         do {
@@ -58,6 +63,8 @@ public class ProjectINBMain {
                     System.out.println("Menu");
                     System.out.println("1. Unblock an account");
                     System.out.println("2. Activate an account");
+                    System.out.println("3: Managing cheques");
+                    System.out.println("Enter your choice");
                     int adminChoice = scanner.nextInt();
 
                     if (adminChoice == 1) {
@@ -79,14 +86,40 @@ public class ProjectINBMain {
                         scanner.nextLine(); 
 
                         customerService.updateApprovalStatus(customerId, true);
-                        System.out.println("Customer account unlocked successfully");                        
+                        System.out.println("Customer account unlocked successfully");  
+
+                    } else if (adminChoice == 3) {
+                        // Admin options for approving/rejecting cheques
+                        System.out.println("Do you want to approve/reject cheques? (Yes/No)");
+                        scanner.nextLine();
+                        String chequeApprovalChoice = scanner.nextLine();
+                        if (chequeApprovalChoice.equalsIgnoreCase("Yes")) {
+                            List<ChequeDetail> cheques = chequeService.getAllCheques();
+                            for (ChequeDetail cheque : cheques) {
+                                System.out.println("Cheque ID: " + cheque.getChequeId() + ", Payer ID: " + cheque.getPayerId() + ", Payee ID: " + cheque.getPayeeId() + ", Amount: " + cheque.getAmount() + ", Status: " + cheque.getChequeStatus());
+                            }
+                            System.out.println("Enter cheque ID to approve/reject:");
+                            int chequeId = scanner.nextInt();
+                            scanner.nextLine(); // Consume the newline character
+                            System.out.println("Approve (1) or Reject (2)?");
+                            int approvalChoice = scanner.nextInt();
+                            scanner.nextLine(); // Consume the newline character
+                            if (approvalChoice == 1) {
+                                chequeService.approveOrRejectCheque(chequeId, true);
+                                System.out.println("Cheque approved");
+                            } else if (approvalChoice == 2) {
+                                chequeService.approveOrRejectCheque(chequeId, false);
+                                System.out.println("Cheque rejected");
+                            } else {
+                                System.out.println("SQL Error");
+                            }
+                        }
                     }
                 } else {
                     System.out.println("Invalid admin credentials");
                 }
-
             } else if (userType == 2) {
-                System.out.println("MENU:");
+                System.out.println("Menu:");
                 System.out.println("1. Register user");
                 System.out.println("2. Login");
                 System.out.println("Enter your choice");
@@ -139,7 +172,6 @@ public class ProjectINBMain {
                     } else {
                         System.out.println("Failed to register new customer");
                     }
-
                     break;
 
                 case 2:
@@ -159,30 +191,81 @@ public class ProjectINBMain {
                             for (AccountDetail account : accounts) {
                                 System.out.println("Account Type: " + account.getAccountType() + ", Balance: " + account.getCurrentBalance());
                             }
-                            
-                            // Transfer money option
-                            System.out.println("Do you want to transfer money? (Yes/No)");
-                            String transferChoice = scanner.nextLine();
-                            if (transferChoice.equalsIgnoreCase("Yes")) {
-                                System.out.println("Enter your account ID:");
-                                int fromAccountId = scanner.nextInt();
-                                System.out.println("Enter receiver's account ID:");
-                                int toAccountId = scanner.nextInt();
-                                System.out.println("Enter amount to transfer:");
-                                double amount = scanner.nextDouble();
-                                scanner.nextLine(); // Consume the newline character
 
-                                accountService.transferMoney(fromAccountId, toAccountId, amount);
-                                System.out.println("Transfer successful");
+                            // Customer Menu
+                            boolean customerMenuActive = true;
+                            while (customerMenuActive) {
+                                System.out.println("MENU:");
+                                System.out.println("1. Transfer money");
+                                System.out.println("2. Issue cheque");
+                                System.out.println("3. Logout");
+                                System.out.println("Enter your choice");
+                                int customerChoice = scanner.nextInt();
+                                scanner.nextLine();
+
+                                switch (customerChoice) {
+                                case 1:
+                                // Transfer money option
+                                System.out.println("Do you want to transfer money? (Yes/No)");
+                                String transferChoice = scanner.nextLine();
+                                if (transferChoice.equalsIgnoreCase("Yes")) {
+                                    System.out.println("Enter your account ID:");
+                                    int fromAccountId = scanner.nextInt();
+                                    System.out.println("Enter receiver's account ID:");
+                                    int toAccountId = scanner.nextInt();
+                                    System.out.println("Enter amount to transfer:");
+                                    double amount = scanner.nextDouble();
+                                    scanner.nextLine(); // Consume the newline character
+
+                                    accountService.transferMoney(fromAccountId, toAccountId, amount);
+                                    System.out.println("Transfer successful");
+                                }
+                                break;
+
+                                case 2:
+                                // Issue cheque
+                                System.out.println("Do you want to issue a cheque? (Yes/No)");
+                                String issueChequeChoice = scanner.nextLine();
+                                if (issueChequeChoice.equalsIgnoreCase("Yes")) {
+                                    System.out.println("Enter payer account ID:");
+                                    int payerId = scanner.nextInt();
+                                    System.out.println("Enter payee account ID:");
+                                    int payeeId = scanner.nextInt();
+                                    System.out.println("Enter amount:");
+                                    double amount = scanner.nextDouble();
+                                    System.out.println("Enter cheque date (YYYY-MM-DD):");
+                                    String chequeDateStr = scanner.next();
+                                    scanner.nextLine(); // Consume the newline character
+                                    LocalDate chequeDate = LocalDate.parse(chequeDateStr);
+
+                                    ChequeDetail newCheque = new ChequeDetail(0, payerId, payeeId, amount, java.sql.Date.valueOf(chequeDate), "Not Cleared", username);
+                                    try {
+                                        chequeService.issueCheque(newCheque);
+                                        System.out.println("Cheque issued successfully");
+                                    } catch (IllegalArgumentException e) {
+                                        System.out.println(e.getMessage());
+                                    }
+                                 }
+                                 break;
+
+                            case 3:
+                                    customerMenuActive = false;
+                                    System.out.println("Logged out successfully");
+                                    break;
+
+                            default:
+                                System.out.println("Invalid choice. Please try again.");
+                                break;
                             }
-                        } else {
-                            System.out.println("Login failed");
                         }
-                        break;
+                    } else {
+                        System.out.println("Login failed");
+                    }
+                    break;
 
-                    default:
-                        System.out.println("Invalid choice. Please try again.");
-                        break;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+                    break;
                 }
             } else {
                 System.out.println("Invalid choice. Please try again.");
